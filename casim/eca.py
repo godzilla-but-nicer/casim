@@ -1,7 +1,5 @@
 import numpy as np
 import networkx as nx
-from scipy.stats import entropy
-from tqdm import tqdm
 from .utils import to_binary, to_decimal
 from .calculations import word_entropy
 
@@ -29,7 +27,7 @@ class eca_sim:
             self.rng = np.random.default_rng()
         else:
             self.rng = np.random.default_rng(random_seed)
-        
+
         # will get assigned later
         self.state = None
 
@@ -161,7 +159,7 @@ class eca_sim:
         self.set_state(state)
         self.simulate_time_series(N, steps)
 
-        cycle = None # use it as a flag before assignment
+        cycle = None  # use it as a flag before assignment
         for i, hist in enumerate(self.history[::-1]):
             if np.array_equal(hist, self.state) and not cycle:
                 cycle = self.history[-(i+1):]
