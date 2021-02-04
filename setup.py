@@ -8,7 +8,7 @@ setup(
     author='Pat Wall',
     author_email='patgwall@iu.edu',
     license='MIT',
-    packages=['cellularautomata'],
+    packages=['casim'],
     install_requires=['numpy>=1.11',
                       'networkx>=2.0',
                       'scipy>=1.2', ],
