@@ -1,8 +1,8 @@
 import numpy as np
 import networkx as nx
-import casim.eca_simulator
+import casim.eca
 
-eca = casim.eca_simulator.eca_sim(54)
+eca = casim.eca.eca_sim(54)
 
 def test_init():
     assert eca.k == 3
