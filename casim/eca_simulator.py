@@ -7,7 +7,7 @@ from .calculations import word_entropy
 
 
 class eca_sim:
-    __init__(self, rule, random_seed=None, float_precision=16):
+    def __init__(self, rule, random_seed=None, float_precision=16):
         """
         This class has methods for simulating elementary cellular automata
 
@@ -26,9 +26,12 @@ class eca_sim:
         self.round_digits = float_precision
 
         if not random_seed:
-            self.default_random()
+            self.rng = np.random.default_rng()
         else:
-            self.set_random_seed(random_seed)
+            self.rng = np.random.default_rng(random_seed)
+        
+        # will get assigned later
+        self.state = None
 
     def step(self, state):
         """ Takes a complete state vector of the system at a time point
@@ -50,23 +53,10 @@ class eca_sim:
         # lookup the index corresponding to the transition
         return self.update[sum(enc) - encoded]
 
-    def set_random_seed(self, seed):
-        """ set custom random seed """
-        rng_gen = np.random.PCG64(np.random.SeedSequence(seed))
-        self.rng = np.random.RandomState(rng_gen)
-
-        return True
-
-    def default_random(self):
-        """ Use the default numpy rng """
-        self.rng = np.random.default_rng()
-
-        return True
-
     def initialize_state(self, N, p=0.5):
         """ Initialize state of the system by setting the paobability
         that each cell is in the 1 state """
-        self.state = np.round(self.rng.uniform(size=N))
+        self.state = self.rng.choice([0, 1], size=N, p=[1-p, p])
 
         return True
 
@@ -97,7 +87,7 @@ class eca_sim:
         # for each possible state we decode the integer into a state vector
         # perform the update and encode the next state as an integer label
         for state in range(2**N):
-            state_vec = to_binary(state)
+            state_vec = to_binary(state, N)
             next_state = self.step(state_vec)
             dec_next = to_decimal(next_state, N)
 
@@ -123,18 +113,18 @@ class eca_sim:
             complete state history of the system
         """
 
-        if not self.state:
+        if self.state is None:
             self.initialize_state()
 
         self.history = np.zeros((steps, N))
 
-        for step in range(steps)
+        for step in range(steps):
             self.history[step] = self.state
             self.state = self.step(self.state)
 
         return self.history
 
-    def simulate_entropy_series(self, N, steps, block_size=self.k):
+    def simulate_entropy_series(self, N, steps, block_size=3):
         """
         Generate a time series for a specified number of cells and steps. This
         function only tracks entropy over time as an approximation for faster
@@ -153,55 +143,61 @@ class eca_sim:
             entropy history of the system
         """
 
-        if not self.state:
+        if self.state is None:
             self.initialize_state()
 
         self.entropies = np.zeros(steps)
 
-        for step in range(steps)
+        for step in range(steps):
             self.entropies[step] = word_entropy(self.state, block_size)
             self.state = self.step(self.state)
 
         return self.entropies
 
-    def find_exact_attractor(self):
+    def find_exact_attractor(self, N, steps, state):
         """ this uses the state histories to find the attractor by matching
         exact system states """
 
+        self.set_state(state)
+        self.simulate_time_series(N, steps)
+
+        cycle = None # use it as a flag before assignment
         for i, hist in enumerate(self.history[::-1]):
             if np.array_equal(hist, self.state) and not cycle:
-                cycle = self.history[-i:]
+                cycle = self.history[-(i+1):]
                 break
 
         # find the first time each state in the cycle appears in the history
-        cycle_hits = [0]
+        cycle_hits = []
         for cycle_state in cycle:
-            in_cycle = np.sum(cycle_state == state_history, axis=1) == N
-            cycle_hits.append(np.argmax(in_cycle)
+            in_cycle = np.sum(cycle_state == self.history, axis=1) == N
+            cycle_hits.append(np.argmax(in_cycle))
 
-        self.exact_transient=np.min(cycle_hits)
-        self.exact_period=cycle.shape[0]
+        self.exact_transient = np.min(cycle_hits)
+        self.exact_period = cycle.shape[0]
 
         return (self.exact_period, self.exact_transient)
 
-
-    def find_approx_attractor(self):
+    def find_approx_attractor(self, N, steps, state):
         """ Uses the entropy to find attractor by matching rounded entropy
         values """
 
+        self.set_state(state)
+        self.simulate_entropy_series(N, steps)
+
         # round everything so comparisons will work
-        end_ent=np.round(word_entropy(self.state, self.k),
-                    digits=self.round_digits)
-        entropies=np.round(self.entropies, digits=round_digits)
+        end_ent = np.round(word_entropy(self.state, self.k),
+                           decimals=self.round_digits)
+        entropies = np.round(self.entropies, decimals=self.round_digits)
 
         # returns idx of frst True
-        cycle_len=np.argmax(entropies[::-1] == end_ent) + 1
-        cycle=entropies[-cycle_len:]
+        cycle_len = np.argmax(entropies[::-1] == end_ent) + 1
+        cycle = entropies[-cycle_len:]
         # the following line returns the first step not in the cycle
         # looking backward
-        transient=np.argmin(np.isin(entropies, cycle)[::-1])
+        transient = np.argmin(np.isin(entropies, cycle)[::-1])
 
-        self.approx_period=cycle_len
-        self.approx_transient=transient
+        self.approx_period = cycle_len
+        self.approx_transient = steps - transient
 
         return (self.approx_period, self.approx_transient)

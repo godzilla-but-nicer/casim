@@ -12,4 +12,12 @@ def word_entropy(state_vector, word_size):
     words = encoding.dot(word_vecs)
     _, word_counts = np.unique(words, return_counts=True)
 
-    return entropy(word_counts)
+    # if words are missing unique won't catch them    
+    # if word_counts.shape[0] < 2**word_size:
+    #     all_words = np.zeros(2**word_size)
+    #     all_words[:word_counts.shape[0]] = word_counts
+    #     word_counts = all_words
+
+    word_freqs = word_counts / np.sum(word_counts)
+
+    return entropy(word_counts, base=2)
