@@ -45,10 +45,10 @@ def test_simulate_entropy_series():
 
 
 def test_find_exact_attractors():
-    period, transient = eca.find_exact_attractor(3, 6, np.array([1, 0, 1]))
-    assert period == 1 and transient == 3
+    period, transient = eca.find_exact_attractor(8, 8, np.array([1, 0, 1, 1, 0, 1, 0, 1]))
+    assert period == 4 and transient == 2
 
 
 def test_find_approx_attractors():
-    period, transient = eca.find_approx_attractor(3, 6, np.array([1, 0, 1]))
-    assert period == 1 and transient == 2
+    period, transient = eca.find_approx_attractor(8, 8, np.array([1, 0, 1, 1, 0, 1, 0, 1]))
+    assert period == 2 and transient == 2
