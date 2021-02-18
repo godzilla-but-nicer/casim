@@ -51,4 +51,4 @@ def test_find_exact_attractors():
 
 def test_find_approx_attractors():
     period, transient = eca.find_approx_attractor(3, 6, np.array([1, 0, 1]))
-    assert period == 1 and transient == 2
+    assert period == 1 and transient == 3
