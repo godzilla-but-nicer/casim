@@ -192,8 +192,7 @@ class eca_sim:
         cycle_len = np.argmax(entropies[::-1] == end_ent) + 1
         cycle = entropies[-cycle_len:]
         # the following line returns the first step not in the cycle
-        # looking backward
-        transient = np.argmin(np.isin(entropies, cycle)[::-1])
+        transient = np.argmax(np.isin(entropies, cycle)) - 1
 
         self.approx_period = cycle_len
         self.approx_transient = steps - transient
