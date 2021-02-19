@@ -180,28 +180,43 @@ class eca_sim:
             self.exact_transient = np.nan
         return (self.exact_period, self.exact_transient)
 
-    def find_approx_attractor(self, N, steps, state):
+    def find_approx_attractor(self, N, steps, state, block_size=3):
         """ Uses the entropy to find attractor by matching rounded entropy
         values """
 
         self.set_state(state)
-        self.simulate_entropy_series(N, steps)
+        self.simulate_entropy_series(N, steps, block_size=block_size)
 
         # round everything so comparisons will work
-        end_ent = np.round(word_entropy(self.state, self.k),
+        end_ent = np.round(word_entropy(self.state, block_size),
                            decimals=self.round_digits)
         entropies = np.round(self.entropies, decimals=self.round_digits)
 
         # returns idx of frst True
         cycle_match = entropies[::-1] == end_ent
         if np.sum(cycle_match) > 0:
-            cycle_len = np.argmax(cycle_match) + 1
-            cycle = entropies[-cycle_len:]
+            # cycle_len = np.argmax(cycle_match) + 1
+            # (locally) maximize the number of states that repeat in sequence
+            cycle_len = None
+            for cli in range(1, int(self.entropies.shape[0] / 2)):
+                test_cycle = entropies[-cli:]
+                previous = entropies[-2*cli:-cli]
+                if np.array_equal(test_cycle, previous):
+                    cycle_len = cli
+                    cycle = entropies[-cli:]
+                elif cycle_len is not None:
+                    break
+                
             # the following line returns the first step not in the cycle
-            transient = np.argmax(np.isin(entropies, cycle))
+            transient = np.argmin(np.isin(entropies, cycle)[::-1])
 
             self.approx_period = cycle_len
-            self.approx_transient = transient
+            # my test for the transient end will return zero if the entire 
+            # time series is in the attractor so we need to check for that
+            if transient > 1:
+                self.approx_transient = steps - transient
+            else:
+                self.approx_transient = 0
 
         else:
             self.approx_period = np.nan
