@@ -164,16 +164,20 @@ class eca_sim:
             if np.array_equal(hist, self.state) and not cycle:
                 cycle = self.history[-(i+1):]
                 break
+        
+        if cycle is not None:
+            # find the first time each state in the cycle appears in the history
+            cycle_hits = []
+            for cycle_state in cycle:
+                in_cycle = np.sum(cycle_state == self.history, axis=1) == N
+                cycle_hits.append(np.argmax(in_cycle))
 
-        # find the first time each state in the cycle appears in the history
-        cycle_hits = []
-        for cycle_state in cycle:
-            in_cycle = np.sum(cycle_state == self.history, axis=1) == N
-            cycle_hits.append(np.argmax(in_cycle))
+            self.exact_transient = np.min(cycle_hits)
+            self.exact_period = cycle.shape[0]
 
-        self.exact_transient = np.min(cycle_hits)
-        self.exact_period = cycle.shape[0]
-
+        else:
+            self.exact_period = np.nan
+            self.exact_transient = np.nan
         return (self.exact_period, self.exact_transient)
 
     def find_approx_attractor(self, N, steps, state):
@@ -189,12 +193,18 @@ class eca_sim:
         entropies = np.round(self.entropies, decimals=self.round_digits)
 
         # returns idx of frst True
-        cycle_len = np.argmax(entropies[::-1] == end_ent) + 1
-        cycle = entropies[-cycle_len:]
-        # the following line returns the first step not in the cycle
-        transient = np.argmax(np.isin(entropies, cycle))
+        cycle_match = entropies[::-1] == end_ent
+        if np.sum(cycle_match) > 0:
+            cycle_len = np.argmax(cycle_match) + 1
+            cycle = entropies[-cycle_len:]
+            # the following line returns the first step not in the cycle
+            transient = np.argmax(np.isin(entropies, cycle))
 
-        self.approx_period = cycle_len
-        self.approx_transient = transient
+            self.approx_period = cycle_len
+            self.approx_transient = transient
+
+        else:
+            self.approx_period = np.nan
+            self.approx_transient = np.nan
 
         return (self.approx_period, self.approx_transient)
