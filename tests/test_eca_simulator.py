@@ -92,3 +92,17 @@ def test_find_approx_attractors_hard():
     period, transient = eca.find_approx_attractor(
         16, 200, np.array([0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0]))
     assert period == 4 and transient == 6
+
+
+def test_find_exact_attractor_tricky():
+    eca = casim.eca.eca_sim(110)
+    period, transient = eca.find_exact_attractor(
+        16, 200, np.array([1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1]))
+    assert period == 16 and transient == 0
+
+
+def test_find_approx_attractor_tricky():
+    eca = casim.eca.eca_sim(110)
+    period, transient = eca.find_approx_attractor(
+        16, 200, np.array([1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1]))
+    assert period == 4 and transient == 0

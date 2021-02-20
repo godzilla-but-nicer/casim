@@ -201,7 +201,8 @@ class eca_sim:
             for cli in range(1, int(self.entropies.shape[0] / 2)):
                 test_cycle = entropies[-cli:]
                 previous = entropies[-2*cli:-cli]
-                if np.array_equal(test_cycle, previous):
+                more_previous = entropies[-3*cli:-2*cli]
+                if np.array_equal(test_cycle, previous) and np.array_equal(test_cycle, more_previous):
                     cycle_len = cli
                     cycle = entropies[-cli:]
                 elif cycle_len is not None:
