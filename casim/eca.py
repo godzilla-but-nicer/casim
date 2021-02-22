@@ -194,7 +194,7 @@ class eca_sim:
 
         # returns idx of frst True
         cycle_match = entropies[::-1] == end_ent
-        if np.sum(cycle_match) > 0:
+        if np.sum(cycle_match) > 1:
             # cycle_len = np.argmax(cycle_match) + 1
             # (locally) maximize the number of states that repeat in sequence
             cycle_len = None
