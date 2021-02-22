@@ -198,6 +198,7 @@ class eca_sim:
             # cycle_len = np.argmax(cycle_match) + 1
             # (locally) maximize the number of states that repeat in sequence
             cycle_len = None
+            cycle = None
             for cli in range(1, int(self.entropies.shape[0] / 2)):
                 test_cycle = entropies[-cli:]
                 previous = entropies[-2*cli:-cli]
