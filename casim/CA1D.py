@@ -207,7 +207,7 @@ class CA1D:
         values """
 
         self.set_state(state)
-        self.simulate_entropy_series_faster(N, steps, block_size=block_size)
+        self.simulate_entropy_series(N, steps, block_size=block_size)
 
         # round everything so comparisons will work
         end_ent = np.round(word_entropy(self.state, block_size),
