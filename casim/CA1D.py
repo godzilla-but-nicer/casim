@@ -216,10 +216,11 @@ class CA1D:
 
         # returns idx of frst True
         cycle_match = entropies[::-1] == end_ent
-        if np.sum(cycle_match) > 0:
+        if np.sum(cycle_match) > 1:
             # cycle_len = np.argmax(cycle_match) + 1
             # (locally) maximize the number of states that repeat in sequence
             cycle_len = None
+            cycle = None
             for cli in range(1, int(self.entropies.shape[0] / 2)):
                 test_cycle = entropies[-cli:]
                 previous = entropies[-2*cli:-cli]
@@ -229,16 +230,21 @@ class CA1D:
                     cycle = entropies[-cli:]
                 elif cycle_len is not None:
                     break
-
+            
             # the following line returns the first step not in the cycle
-            transient = np.argmin(np.isin(entropies, cycle)[::-1])
-
-            self.approx_period = cycle_len
-            # my test for the transient end will return zero if the entire
+            if cycle is not None:
+                transient = np.argmin(np.isin(entropies, cycle)[::-1])
+                self.approx_period = cycle_len
+            else:
+                transient = np.nan
+                self.approx_transient = np.nan
+                self.approx_period = np.nan
+                
+            # my test for the transient end will return zero if the entire 
             # time series is in the attractor so we need to check for that
             if transient > 1:
                 self.approx_transient = steps - transient
-            else:
+            elif transient == 0:
                 self.approx_transient = 0
 
         else:
