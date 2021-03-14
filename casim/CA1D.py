@@ -202,12 +202,12 @@ class CA1D:
             self.exact_transient = np.nan
         return (self.exact_period, self.exact_transient)
 
-    def find_approx_attractor(self, N, steps, state, block_size=3):
+    def find_approx_attractor(self, N, steps, state, block_size=5):
         """ Uses the entropy to find attractor by matching rounded entropy
         values """
 
         self.set_state(state)
-        self.simulate_entropy_series(N, steps, block_size=block_size)
+        self.simulate_entropy_series_faster(N, steps, block_size=block_size)
 
         # round everything so comparisons will work
         end_ent = np.round(word_entropy(self.state, block_size),
@@ -270,4 +270,4 @@ class CA1D:
             if np.abs(window_mean - prev_mean) < 0.001:
                 break
 
-        return self.entropies[:step+1]
+        return np.array(self.entropies)
