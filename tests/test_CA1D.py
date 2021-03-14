@@ -1,7 +1,8 @@
 import numpy as np
-import casim.eca
+import casim.utils
+import casim.CA1D
 
-eca = casim.eca.eca_sim(54)
+eca = casim.CA1D.CA1D(3, 54)
 
 
 def test_init():
@@ -14,13 +15,21 @@ def test_step():
 
 
 def test_initialize_state():
-    eca.initialize_state(3, p=1.0)
-    assert np.sum(eca.state) == 3
+    x = eca.initialize_state(3, p=1.0)
+    assert np.sum(x) == 3
 
 
 def test_set_state():
     eca.set_state(np.array([1, 0, 1]))
     assert np.array_equal(eca.state, np.array([1, 0, 1]))
+
+def test_set_rule():
+    eca2 = casim.CA1D.CA1D(3, 54)
+    eca2.set_rule(110)
+    assert eca2.rule == 110
+
+def test_lambda_rule():
+    assert np.sum(casim.utils.to_binary(eca.lambda_rule(2))) == 6
 
 
 def test_get_state_transition_graph():
@@ -81,28 +90,28 @@ def test_find_approx_attractors_immediate():
 
 
 def test_find_exact_attractors_hard():
-    eca = casim.eca.eca_sim(110)
+    eca = casim.CA1D.CA1D(3, 110)
     period, transient = eca.find_exact_attractor(
         16, 200, np.array([0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0]))
     assert period == 16 and transient == 6
 
 
 def test_find_approx_attractors_hard():
-    eca = casim.eca.eca_sim(110)
+    eca = casim.CA1D.CA1D(3, 110)
     period, transient = eca.find_approx_attractor(
         16, 200, np.array([0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0]))
     assert period == 4 and transient == 6
 
 
 def test_find_exact_attractor_tricky():
-    eca = casim.eca.eca_sim(110)
+    eca = casim.CA1D.CA1D(3, 110)
     period, transient = eca.find_exact_attractor(
         16, 200, np.array([1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1]))
     assert period == 16 and transient == 0
 
 
 def test_find_approx_attractor_tricky():
-    eca = casim.eca.eca_sim(110)
+    eca = casim.CA1D.CA1D(3, 110)
     period, transient = eca.find_approx_attractor(
         16, 200, np.array([1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1]))
     assert period == 4 and transient == 0

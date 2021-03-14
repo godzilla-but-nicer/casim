@@ -4,8 +4,8 @@ from .utils import to_binary, to_decimal
 from .calculations import word_entropy
 
 
-class eca_sim:
-    def __init__(self, rule, random_seed=None, float_precision=16):
+class CA1D:
+    def __init__(self, k: int, rule: int, random_seed=None, float_precision=16):
         """
         This class has methods for simulating elementary cellular automata
 
@@ -15,11 +15,19 @@ class eca_sim:
         rule : int
             specifies the logic for the update rule in Wolfram's notation
         """
-        # k is the neighborhood, for eca it is 3
-        self.k = 3
+        if k % 2 == 0:
+            raise ValueError('Neighborhood size must be odd!')
+        else:
+            self.k = k
+        # number of bits needed to represent rule for this k value
+        self.rule_bits = 2**self.k
 
-        self.rule = rule
-        self.update = to_binary(self.rule)
+        if rule >= 2**self.rule_bits or rule < 0:
+            raise ValueError('Invalid rule for neighborhood of size ' + str(k))
+        else:
+            self.rule = rule
+        
+        self.update = to_binary(self.rule, digits=self.rule_bits)
 
         self.round_digits = float_precision
 
@@ -31,7 +39,7 @@ class eca_sim:
         # will get assigned later
         self.state = None
 
-    def step(self, state):
+    def step(self, state: np.ndarray):
         """ Takes a complete state vector of the system at a time point
         and provides the new value for Centers """
         # calculate the encoding vector based on the rule binary
@@ -41,11 +49,12 @@ class eca_sim:
         expos = np.arange(input_size, 0, -1) - 1
         enc = 2**expos
 
-        # we need to get new 3-vectors (Left, Center, Right) for each position
-        # can use roll to "shift" the whole array left and right on a circle
-        # and vstack to set them up as a list of 3-vectors
-        vec = np.vstack((np.roll(state, 1), state,
-                         np.roll(state, -1))).astype(np.int8)
+        # we need to get new k-vectors (-floor(k/2), ..., 0, ..., floor(k/2)) 
+        # for each position can use roll to "shift" the whole array left and 
+        # right on a circle and vstack to set them up as a list of k-vectors
+        offsets = np.arange(-np.floor(self.k/2), np.floor(self.k/2) + 1).astype(int)
+        stack_list = [np.roll(state, offs) for offs in offsets]
+        vec = np.vstack(stack_list).astype(np.int8)
         encoded = vec.T.dot(enc).astype(np.int8)
 
         # lookup the index corresponding to the transition
@@ -54,15 +63,28 @@ class eca_sim:
     def initialize_state(self, N, p=0.5):
         """ Initialize state of the system by setting the paobability
         that each cell is in the 1 state """
-        self.state = self.rng.choice([0, 1], size=N, p=[1-p, p])
+        return self.rng.choice([0, 1], size=N, p=[1-p, p])
 
-        return True
-
-    def set_state(self, state):
+    def set_state(self, state) -> bool:
         """ set the system state to a particular value, useful in testing """
         self.state = state
 
         return True
+
+    def set_rule(self, rule) -> bool:
+        """ Change rule and associated data """
+        self.rule = rule
+        self.update = to_binary(rule, digits=2**self.k)
+
+        return True
+
+    def lambda_rule(self, l_int: int, quiescent_state=0) -> int:
+        """ get a rule by choosing a specific number of qiescent transitions, 
+        (unnormalized) """
+        qs = self.rng.choice(self.rule_bits, size=l_int, replace=False)
+        bin_rule = np.ones(self.rule_bits)
+        bin_rule[qs] = 0
+        return to_decimal(bin_rule, self.rule_bits)
 
     def get_state_transition_graph(self, N):
         """ Calculates the complete state transition graph for a specified
@@ -164,7 +186,7 @@ class eca_sim:
             if np.array_equal(hist, self.state) and not cycle:
                 cycle = self.history[-(i+1):]
                 break
-        
+
         if cycle is not None:
             # find the first time each state in the cycle appears in the history
             cycle_hits = []
@@ -207,12 +229,12 @@ class eca_sim:
                     cycle = entropies[-cli:]
                 elif cycle_len is not None:
                     break
-                
+
             # the following line returns the first step not in the cycle
             transient = np.argmin(np.isin(entropies, cycle)[::-1])
 
             self.approx_period = cycle_len
-            # my test for the transient end will return zero if the entire 
+            # my test for the transient end will return zero if the entire
             # time series is in the attractor so we need to check for that
             if transient > 1:
                 self.approx_transient = steps - transient
@@ -224,3 +246,18 @@ class eca_sim:
             self.approx_transient = np.nan
 
         return (self.approx_period, self.approx_transient)
+
+    def simulate_entropy_series_faster(self, N, steps, block_size):
+        if self.state is None:
+            self.initialize_state()
+
+        self.entropies = []
+        window = np.ciel(steps / 100)
+
+        for step in range(steps):
+            prev_mean = window_mean
+            self.entropies.append(word_entropy(self.state, block_size))
+            window_mean = np.mean()
+            self.state = self.step(self.state)
+
+        return self.entropies
