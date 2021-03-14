@@ -259,11 +259,15 @@ class CA1D:
 
         self.entropies = []
         window = np.ciel(steps / 100)
+        window_mean = -1
 
         for step in range(steps):
             prev_mean = window_mean
             self.entropies.append(word_entropy(self.state, block_size))
-            window_mean = np.mean()
+            window_mean = np.mean(self.entropies[step - window:step])
             self.state = self.step(self.state)
 
-        return self.entropies
+            if np.abs(window_mean - prev_mean) < 0.001:
+                break
+
+        return self.entropies[:step+1]
