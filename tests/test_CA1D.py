@@ -40,7 +40,7 @@ def test_get_state_transition_graph():
 
 def test_simulate_time_series():
     known = np.array([[1, 0, 1], [0, 1, 0], [1, 1, 1],
-                      [0, 0, 0], [0, 0, 0], [0, 0, 0]])
+                      [0, 0, 0], [0, 0, 0]])
     eca.set_state(np.array([1, 0, 1]))
     eca.simulate_time_series(3, 6)
     assert np.array_equal(eca.history, known)

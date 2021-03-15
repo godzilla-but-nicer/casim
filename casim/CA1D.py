@@ -145,9 +145,10 @@ class CA1D:
             # encode state as a giant integer for matching so we can break out of the loop early
             int_enc = to_decimal(self.state, digits=N)
             if int_enc in obs_set:
+                self.state = self.step(self.state)
                 break
             else:
-                obs_set.add(self.state)
+                obs_set.add(int_enc)
                 self.state = self.step(self.state)
                 
 
