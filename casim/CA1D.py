@@ -26,7 +26,7 @@ class CA1D:
             raise ValueError('Invalid rule for neighborhood of size ' + str(k))
         else:
             self.rule = rule
-        
+
         self.update = to_binary(self.rule, digits=self.rule_bits)
 
         self.round_digits = float_precision
@@ -49,10 +49,11 @@ class CA1D:
         expos = np.arange(input_size, 0, -1) - 1
         enc = 2**expos
 
-        # we need to get new k-vectors (-floor(k/2), ..., 0, ..., floor(k/2)) 
-        # for each position can use roll to "shift" the whole array left and 
+        # we need to get new k-vectors (-floor(k/2), ..., 0, ..., floor(k/2))
+        # for each position can use roll to "shift" the whole array left and
         # right on a circle and vstack to set them up as a list of k-vectors
-        offsets = np.arange(-np.floor(self.k/2), np.floor(self.k/2) + 1).astype(int)
+        offsets = np.arange(-np.floor(self.k/2),
+                            np.floor(self.k/2) + 1).astype(int)
         stack_list = [np.roll(state, offs) for offs in offsets]
         vec = np.vstack(stack_list).astype(np.int8)
         encoded = vec.T.dot(enc).astype(np.int8)
@@ -136,14 +137,103 @@ class CA1D:
         if self.state is None:
             self.initialize_state()
 
-        self.history = np.zeros((steps, N))
+        list_history = []
+        obs_set = set()
 
         for step in range(steps):
-            self.history[step] = self.state
-            self.state = self.step(self.state)
+            list_history.append(self.state)
+            # encode state as a giant integer for matching so we can break out of the loop early
+            int_enc = to_decimal(self.state, digits=N)
+            if int_enc in obs_set:
+                break
+            else:
+                self.state = self.step(self.state)
+
+        self.history = np.array(list_history)
 
         return self.history
 
+    def find_exact_attractor(self, N, steps, state):
+        """ this uses the state histories to find the attractor by matching
+        exact system states """
+
+        self.set_state(state)
+        self.simulate_time_series(N, steps)
+
+        cycle = None  # use it as a flag before assignment
+        for i, hist in enumerate(self.history[::-1]):
+            if np.array_equal(hist, self.state) and not cycle:
+                cycle = self.history[-(i+1):]
+                break
+
+        if cycle is not None:
+            # find the first time each state in the cycle appears in the history
+            cycle_hits = []
+            for cycle_state in cycle:
+                in_cycle = np.sum(cycle_state == self.history, axis=1) == N
+                cycle_hits.append(np.argmax(in_cycle))
+
+            self.exact_transient = np.min(cycle_hits)
+            self.exact_period = cycle.shape[0]
+
+        else:
+            self.exact_period = np.nan
+            self.exact_transient = np.nan
+        return (self.exact_period, self.exact_transient)
+
+    def find_approx_attractor(self, N, steps, state, block_size=3):
+        """ Uses the entropy to find attractor by matching rounded entropy
+        values """
+
+        self.set_state(state)
+        self.simulate_entropy_series(N, steps, block_size=block_size)
+
+        # round everything so comparisons will work
+        end_ent = np.round(word_entropy(self.state, block_size),
+                           decimals=self.round_digits)
+        entropies = np.round(self.entropies, decimals=self.round_digits)
+
+        # returns idx of frst True
+        cycle_match = entropies[::-1] == end_ent
+        if np.sum(cycle_match) > 1:
+            # cycle_len = np.argmax(cycle_match) + 1
+            # (locally) maximize the number of states that repeat in sequence
+            cycle_len = None
+            cycle = None
+            for cli in range(1, int(self.entropies.shape[0] / 2)):
+                test_cycle = entropies[-cli:]
+                previous = entropies[-2*cli:-cli]
+                more_previous = entropies[-3*cli:-2*cli]
+                if np.array_equal(test_cycle, previous) and np.array_equal(test_cycle, more_previous):
+                    cycle_len = cli
+                    cycle = entropies[-cli:]
+                elif cycle_len is not None:
+                    break
+
+            # the following line returns the first step not in the cycle
+            if cycle is not None:
+                transient = np.argmin(np.isin(entropies, cycle)[::-1])
+                self.approx_period = cycle_len
+            else:
+                transient = np.nan
+                self.approx_transient = np.nan
+                self.approx_period = np.nan
+
+            # my test for the transient end will return zero if the entire
+            # time series is in the attractor so we need to check for that
+            if transient > 1:
+                self.approx_transient = steps - transient
+            elif transient == 0:
+                self.approx_transient = 0
+
+        else:
+            self.approx_period = np.nan
+            self.approx_transient = np.nan
+
+        return (self.approx_period, self.approx_transient)
+
+   # it turns out my approximations are SLOWER than exact matching. probably
+    # because of numpy speedup in matching
     def simulate_entropy_series(self, N, steps, block_size=3):
         """
         Generate a time series for a specified number of cells and steps. This
@@ -174,85 +264,6 @@ class CA1D:
 
         return self.entropies
 
-    def find_exact_attractor(self, N, steps, state):
-        """ this uses the state histories to find the attractor by matching
-        exact system states """
-
-        self.set_state(state)
-        self.simulate_time_series(N, steps)
-
-        cycle = None  # use it as a flag before assignment
-        for i, hist in enumerate(self.history[::-1]):
-            if np.array_equal(hist, self.state) and not cycle:
-                cycle = self.history[-(i+1):]
-                break
-
-        if cycle is not None:
-            # find the first time each state in the cycle appears in the history
-            cycle_hits = []
-            for cycle_state in cycle:
-                in_cycle = np.sum(cycle_state == self.history, axis=1) == N
-                cycle_hits.append(np.argmax(in_cycle))
-
-            self.exact_transient = np.min(cycle_hits)
-            self.exact_period = cycle.shape[0]
-
-        else:
-            self.exact_period = np.nan
-            self.exact_transient = np.nan
-        return (self.exact_period, self.exact_transient)
-
-    def find_approx_attractor(self, N, steps, state, block_size=4):
-        """ Uses the entropy to find attractor by matching rounded entropy
-        values """
-
-        self.set_state(state)
-        self.simulate_entropy_series(N, steps, block_size=block_size)
-
-        # round everything so comparisons will work
-        end_ent = np.round(word_entropy(self.state, block_size),
-                           decimals=self.round_digits)
-        entropies = np.round(self.entropies, decimals=self.round_digits)
-
-        # returns idx of frst True
-        cycle_match = entropies[::-1] == end_ent
-        if np.sum(cycle_match) > 1:
-            # cycle_len = np.argmax(cycle_match) + 1
-            # (locally) maximize the number of states that repeat in sequence
-            cycle_len = None
-            cycle = None
-            for cli in range(1, int(self.entropies.shape[0] / 2)):
-                test_cycle = entropies[-cli:]
-                previous = entropies[-2*cli:-cli]
-                more_previous = entropies[-3*cli:-2*cli]
-                if np.array_equal(test_cycle, previous) and np.array_equal(test_cycle, more_previous):
-                    cycle_len = cli
-                    cycle = entropies[-cli:]
-                elif cycle_len is not None:
-                    break
-            
-            # the following line returns the first step not in the cycle
-            if cycle is not None:
-                transient = np.argmin(np.isin(entropies, cycle)[::-1])
-                self.approx_period = cycle_len
-            else:
-                transient = np.nan
-                self.approx_transient = np.nan
-                self.approx_period = np.nan
-                
-            # my test for the transient end will return zero if the entire 
-            # time series is in the attractor so we need to check for that
-            if transient > 1:
-                self.approx_transient = steps - transient
-            elif transient == 0:
-                self.approx_transient = 0
-
-        else:
-            self.approx_period = np.nan
-            self.approx_transient = np.nan
-
-        return (self.approx_period, self.approx_transient)
-
     def simulate_entropy_series_faster(self, N, steps, block_size):
         if self.state is None:
             self.initialize_state()
@@ -269,6 +280,6 @@ class CA1D:
 
             if np.abs(window_mean - prev_mean) < 0.001:
                 break
-        
+
         self.entropies = np.array(self.entropies)
         return self.entropies

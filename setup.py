@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='casim',
-    version='0.1.3',
+    version='0.2.0',
     description='Simple package for simulating (1D) cellular automata',
     url='https://github.com/godzilla-but-nicer/cellularautomata',
     author='Pat Wall',
