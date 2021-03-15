@@ -147,7 +147,9 @@ class CA1D:
             if int_enc in obs_set:
                 break
             else:
+                obs_set.add(self.state)
                 self.state = self.step(self.state)
+                
 
         self.history = np.array(list_history)
 
