@@ -81,10 +81,11 @@ class CA1D:
 
     def lambda_rule(self, l_int: int, quiescent_state=0) -> int:
         """ get a rule by choosing a specific number of qiescent transitions, 
-        (unnormalized) """
-        qs = self.rng.choice(self.rule_bits, size=l_int, replace=False)
+        (unnormalized) out of 2**self.k - 2 [for binary] """
+        qs = self.rng.choice(np.arange(1, self.rule_bits - 1), size=l_int, replace=False)
         bin_rule = np.ones(self.rule_bits)
         bin_rule[qs] = 0
+        bin_rule[-1] = 0
         return to_decimal(bin_rule, self.rule_bits)
 
     def get_state_transition_graph(self, N):
@@ -144,13 +145,13 @@ class CA1D:
             list_history.append(self.state)
             # encode state as a giant integer for matching so we can break out of the loop early
             int_enc = to_decimal(self.state, digits=N)
+            self.state = self.step(self.state)
+            
+            # see if ur done
             if int_enc in obs_set:
-                self.state = self.step(self.state)
                 break
             else:
                 obs_set.add(int_enc)
-                self.state = self.step(self.state)
-                
 
         self.history = np.array(list_history)
 
