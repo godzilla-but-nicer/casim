@@ -31,7 +31,7 @@ def test_set_rule():
 
 
 def test_lambda_rule():
-    assert np.sum(casim.utils.to_binary(eca.lambda_rule(2))) == 6
+    assert np.sum(casim.utils.to_binary(eca.lambda_rule(2))) == 5
 
 
 def test_get_state_transition_graph():
@@ -84,7 +84,7 @@ def test_find_exact_attractor_huge():
     eca = casim.CA1D.CA1D(3, 15)
     period, transient = eca.find_exact_attractor(
         100, 200, eca.initialize_state(100))
-    assert np.isnan(period)
+    assert not np.isnan(period)
 
 
 def test_simulate_entropy_series():
