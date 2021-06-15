@@ -5,7 +5,8 @@ from .calculations import word_entropy
 
 
 class CA1D:
-    def __init__(self, k: int, rule: int, random_seed=None, float_precision=16):
+    def __init__(self, k: int, rule: int, random_seed=None,
+                 float_precision=16):
         """
         This class has methods for simulating elementary cellular automata
 
@@ -80,9 +81,10 @@ class CA1D:
         return True
 
     def lambda_rule(self, l_int: int, quiescent_state=0) -> int:
-        """ get a rule by choosing a specific number of qiescent transitions, 
+        """ get a rule by choosing a specific number of qiescent transitions,
         (unnormalized) out of 2**self.k - 2 [for binary] """
-        qs = self.rng.choice(np.arange(1, self.rule_bits - 1), size=l_int, replace=False)
+        qs = self.rng.choice(
+            np.arange(1, self.rule_bits - 1), size=l_int, replace=False)
         bin_rule = np.ones(self.rule_bits)
         bin_rule[qs] = 0
         bin_rule[-1] = 0
@@ -143,10 +145,11 @@ class CA1D:
 
         for step in range(steps):
             list_history.append(self.state)
-            # encode state as a giant integer for matching so we can break out of the loop early
+            # encode state as a giant integer for matching so we can break
+            # out of the loop early
             int_enc = to_decimal(self.state, digits=N)
             self.state = self.step(self.state)
-            
+
             # see if ur done
             if int_enc in obs_set:
                 break
@@ -171,7 +174,7 @@ class CA1D:
                 break
 
         if cycle is not None:
-            # find the first time each state in the cycle appears in the history
+            # find the first time each state in the cycle appears in the hist
             cycle_hits = []
             for cycle_state in cycle:
                 in_cycle = np.sum(cycle_state == self.history, axis=1) == N
@@ -208,7 +211,8 @@ class CA1D:
                 test_cycle = entropies[-cli:]
                 previous = entropies[-2*cli:-cli]
                 more_previous = entropies[-3*cli:-2*cli]
-                if np.array_equal(test_cycle, previous) and np.array_equal(test_cycle, more_previous):
+                if (np.array_equal(test_cycle, previous) and
+                   np.array_equal(test_cycle, more_previous)):
                     cycle_len = cli
                     cycle = entropies[-cli:]
                 elif cycle_len is not None:
@@ -236,7 +240,7 @@ class CA1D:
 
         return (self.approx_period, self.approx_transient)
 
-   # it turns out my approximations are SLOWER than exact matching. probably
+    # it turns out my approximations are SLOWER than exact matching. probably
     # because of numpy speedup in matching
     def simulate_entropy_series(self, N, steps, block_size=3):
         """
