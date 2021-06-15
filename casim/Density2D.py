@@ -2,20 +2,20 @@ import numpy as np
 from scipy import signal
 
 
-class GameOfLife:
-    def __init__(self, seed: int = None):
+class Density2D:
+    def __init__(self, n_states: int, thresholds, seed: int = None):
         """
-        this class simulates conway's game of life
-        """
-        # set params
-        self.survive = {'low': 2, 'high': 3}
-        self.reproduce = 3
+        This class contains functions for 2D CA models that depend on the
+        number of neighbors but not their specific arrangement """
 
-        # set conv filter
-        self.filter = np.array([[1, 1, 1],
-                                [1, 0, 1],
-                                [1, 1, 1]])
+        # set the possible states and thresholds for the states
+        self.thresholds = np.zeros(n_states)
+        self.states = np.arange(n_states)
 
+        for i in range(self.states.shape[0]):
+            self.thresholds[i] = thresholds[i]
+
+        # rng
         if seed:
             self.rng = np.random.default_rng(seed)
         else:
@@ -41,6 +41,26 @@ class GameOfLife:
 
         return self.history
 
+
+class GameOfLife(Density2D):
+    def __init__(self, seed: int = None):
+        """
+        this class simulates conway's game of life
+        """
+        # set params
+        self.survive = {'low': 2, 'high': 3}
+        self.reproduce = 3
+
+        # set conv filter
+        self.filter = np.array([[1, 1, 1],
+                                [1, 0, 1],
+                                [1, 1, 1]])
+
+        if seed:
+            self.rng = np.random.default_rng(seed)
+        else:
+            self.rng = np.random.default_rng()
+
     def step(self, grid):
         """
         this does a single step. we're going to do convolution!!
@@ -60,21 +80,60 @@ class GameOfLife:
         return new_grid
 
 
-class Density2D:
-    def __init__(self, n_states: int, thresholds, seed: int = None):
+class DormantLife(Density2D):
+    def __init__(self, seed: int):
         """
-        This class contains functions for 2D CA models that depend on the
-        number of neighbors but not their specific arrangement """
+        this class implements the three state game of life described in
+        Javid 2007
+        """
+        # set params
+        self.survive = {'low': 2, 'high': 3}
+        self.reproduce = 3
+        self.die = 4
 
-        # set the possible states and thresholds for the states
-        self.thresholds = np.zeros(n_states)
-        self.states = np.arange(n_states)
+        # three states {alive: 2, dormant: 1, dead: 0}
 
-        for i in range(self.states.shape[0]):
-            self.thresholds[i] = thresholds[i]
+        # set conv filter
+        self.filter = np.array([[1, 1, 1],
+                                [1, 0, 1],
+                                [1, 1, 1]])
 
-        # rng
         if seed:
             self.rng = np.random.default_rng(seed)
         else:
             self.rng = np.random.default_rng()
+
+    def step(self, grid):
+        """
+        single step of the dormancy CA using convolution
+        """
+        # copy the grid to make a new grid
+        new_grid = grid.copy()
+
+        # need 2 arrays to convolve
+        dormant = grid == 1
+        alive = grid == 2
+
+        # convolve!
+        d_neighbors = signal.convolve2d(
+            dormant, self.filter, mode='same', boundary='wrap')
+        a_neighbors = signal.convolve2d(
+            alive, self.filter, mode='same', boundary='wrap')
+
+        # sporulation
+        new_grid[(grid == 2) &
+                 ((a_neighbors < self.survive['low']) |
+                  (a_neighbors > self.survive['high']))] = 1
+
+        # reproduction
+        new_grid[(grid == 0) & (a_neighbors == self.reproduce)] = 2
+
+        # dormant awakening
+        new_grid[(grid == 1) &
+                 ((d_neighbors >= self.survive['low']) &
+                  (d_neighbors <= self.survive['high']))] = 2
+
+        # dormant dying
+        new_grid[(grid == 1) & (d_neighbors + a_neighbors > self.die)] = 0
+
+        return new_grid
