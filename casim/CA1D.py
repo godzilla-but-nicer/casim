@@ -119,7 +119,7 @@ class CA1D:
 
         return self.G
 
-    def simulate_time_series(self, N, steps):
+    def simulate_time_series(self, N, steps, early_stop=False):
         """
         Generate a time series for a specified number of cells and steps. This
         function retains complete state history for summarization elsewhere.
@@ -141,19 +141,24 @@ class CA1D:
             self.initialize_state()
 
         list_history = []
-        obs_set = set()
+
+        # early stop exits as soon as an attractor is reached
+        if early_stop:
+            obs_set = set()
 
         for step in range(steps):
             list_history.append(self.state)
             # encode state as a giant integer for matching so we can break
             # out of the loop early
-            int_enc = to_decimal(self.state, digits=N)
+            if early_stop:
+                int_enc = to_decimal(self.state, digits=N)
+
             self.state = self.step(self.state)
 
             # see if ur done
-            if int_enc in obs_set:
+            if int_enc in obs_set and early_stop:
                 break
-            else:
+            elif early_stop:
                 obs_set.add(int_enc)
 
         self.history = np.array(list_history)
@@ -165,7 +170,7 @@ class CA1D:
         exact system states """
 
         self.set_state(state)
-        self.simulate_time_series(N, steps)
+        self.simulate_time_series(N, steps, early_stop=True)
 
         cycle = None  # use it as a flag before assignment
         for i, hist in enumerate(self.history[::-1]):
