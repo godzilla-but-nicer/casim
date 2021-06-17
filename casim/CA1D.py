@@ -156,10 +156,11 @@ class CA1D:
             self.state = self.step(self.state)
 
             # see if ur done
-            if int_enc in obs_set and early_stop:
-                break
-            elif early_stop:
-                obs_set.add(int_enc)
+            if early_stop:    
+                if int_enc in obs_set:
+                    break
+                else:
+                    obs_set.add(int_enc)
 
         self.history = np.array(list_history)
 
