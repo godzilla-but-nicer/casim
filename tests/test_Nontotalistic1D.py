@@ -1,8 +1,8 @@
 import numpy as np
 import casim.utils
-import casim.CA1D
+import casim.Nontotalistic1D
 
-eca = casim.CA1D.CA1D(3, 54)
+eca = casim.Nontotalistic1D.Nontotalistic1D(3, 54)
 
 
 def test_init():
@@ -25,7 +25,7 @@ def test_set_state():
 
 
 def test_set_rule():
-    eca2 = casim.CA1D.CA1D(3, 54)
+    eca2 = casim.Nontotalistic1D.Nontotalistic1D(3, 54)
     eca2.set_rule(110)
     assert eca2.rule == 110
 
@@ -67,21 +67,21 @@ def test_find_exact_attractors_immediate():
 
 
 def test_find_exact_attractors_hard():
-    eca = casim.CA1D.CA1D(3, 110)
+    eca = casim.Nontotalistic1D.Nontotalistic1D(3, 110)
     period, transient = eca.find_exact_attractor(
         16, 200, np.array([0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0]))
     assert period == 16 and transient == 6
 
 
 def test_find_exact_attractor_tricky():
-    eca = casim.CA1D.CA1D(3, 110)
+    eca = casim.Nontotalistic1D.Nontotalistic1D(3, 110)
     period, transient = eca.find_exact_attractor(
         16, 200, np.array([1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1]))
     assert period == 16 and transient == 0
 
 
 def test_find_exact_attractor_huge():
-    eca = casim.CA1D.CA1D(3, 15)
+    eca = casim.Nontotalistic1D.Nontotalistic1D(3, 15)
     period, transient = eca.find_exact_attractor(
         100, 200, eca.initialize_state(100))
     assert not np.isnan(period)
@@ -113,14 +113,14 @@ def test_find_approx_attractors_immediate():
 
 
 def test_find_approx_attractors_hard():
-    eca = casim.CA1D.CA1D(3, 110)
+    eca = casim.Nontotalistic1D.Nontotalistic1D(3, 110)
     period, transient = eca.find_approx_attractor(
         16, 200, np.array([0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0]))
     assert period == 4 and transient == 6
 
 
 def test_find_approx_attractor_tricky():
-    eca = casim.CA1D.CA1D(3, 110)
+    eca = casim.Nontotalistic1D.Nontotalistic1D(3, 110)
     period, transient = eca.find_approx_attractor(
         16, 200, np.array([1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1]))
     assert period == 4 and transient == 0

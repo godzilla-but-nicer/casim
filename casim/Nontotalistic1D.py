@@ -4,7 +4,7 @@ from .utils import to_binary, to_decimal
 from .calculations import word_entropy
 
 
-class CA1D:
+class Nontotalistic1D:
     def __init__(self, k: int, rule: int, random_seed=None,
                  float_precision=16):
         """

@@ -1,8 +1,9 @@
 import numpy as np
+from numpy.core.numeric import array_equal
 from scipy import signal
 
 
-class Density2D:
+class Totalistic2D:
     def __init__(self, n_states: int, thresholds, seed: int = None):
         """
         This class contains functions for 2D CA models that depend on the
@@ -41,8 +42,41 @@ class Density2D:
 
         return self.history
 
+    def simulate_transients(self, init_grid, max_steps: int):
+        """
+        this method simulates the thing until an attractor is found
+        """
+        if type(init_grid) == int:
+            self.grid = self.rng.choice([0, 1], size=[init_grid, init_grid])
+        else:
+            self.grid = init_grid
 
-class GameOfLife(Density2D):
+        # flag to set NaN if attractor is not found
+        found_attractor = False
+
+        self.history = np.zeros(
+            (max_steps+1, self.grid.shape[0], self.grid.shape[0]))
+
+        for st in range(max_steps):
+            self.history[st] = self.grid
+            self.grid = self.step(self.grid)
+
+            for hi, prev in enumerate(self.history[:st]):
+                if array_equal(prev, self.grid):
+                    last_idx_transient = hi - 1
+                    found_attractor = True
+                    break
+
+        # if we dont find the attractor the transient index should be NaN
+        if not found_attractor:
+            last_idx_transient = np.nan
+
+        self.history[-1] = self.grid
+
+        return self.history, last_idx_transient
+
+
+class GameOfLife(Totalistic2D):
     def __init__(self, seed: int = None):
         """
         this class simulates conway's game of life
@@ -80,7 +114,7 @@ class GameOfLife(Density2D):
         return new_grid
 
 
-class DormantLife(Density2D):
+class DormantLife(Totalistic2D):
     def __init__(self, seed: int):
         """
         this class implements the three state game of life described in
@@ -109,6 +143,7 @@ class DormantLife(Density2D):
         """
         # copy the grid to make a new grid
         new_grid = grid.copy()
+        updated = np.zeros(new_grid.shape, dtype=bool)  # mask for dead spores
 
         # need 2 arrays to convolve
         dormant = grid == 1
@@ -128,12 +163,18 @@ class DormantLife(Density2D):
         # reproduction
         new_grid[(grid == 0) & (a_neighbors == self.reproduce)] = 2
 
+        # dormant dying
+        new_grid[(updated is False) &
+                 (grid == 1) &
+                 (d_neighbors + a_neighbors > self.die)] = 0
+        updated[(updated is False) &
+                (grid == 1) &
+                (d_neighbors + a_neighbors > self.die)] = True
+
         # dormant awakening
-        new_grid[(grid == 1) &
+        new_grid[(updated is False) &
+                 (grid == 1) &
                  ((d_neighbors >= self.survive['low']) &
                   (d_neighbors <= self.survive['high']))] = 2
-
-        # dormant dying
-        new_grid[(grid == 1) & (d_neighbors + a_neighbors > self.die)] = 0
 
         return new_grid
