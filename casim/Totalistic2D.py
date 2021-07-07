@@ -66,6 +66,10 @@ class Totalistic2D:
                     last_idx_transient = hi - 1
                     found_attractor = True
                     break
+            
+            # exit loop if we're dont with the attractor
+            if found_attractor:
+                break
 
         # if we dont find the attractor the transient index should be NaN
         if not found_attractor:
