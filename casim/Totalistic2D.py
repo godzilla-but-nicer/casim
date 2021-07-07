@@ -69,7 +69,7 @@ class Totalistic2D:
             
             # exit loop if we're done with the attractor
             if found_attractor:
-                end_step = st
+                end_step = st + 1
                 break
 
         # if we dont find the attractor the transient index should be NaN
