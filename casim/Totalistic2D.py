@@ -67,17 +67,16 @@ class Totalistic2D:
                     found_attractor = True
                     break
             
-            # exit loop if we're dont with the attractor
+            # exit loop if we're done with the attractor
             if found_attractor:
+                end_step = st
                 break
 
         # if we dont find the attractor the transient index should be NaN
         if not found_attractor:
             last_idx_transient = np.nan
 
-        self.history[-1] = self.grid
-
-        return self.history, last_idx_transient
+        return self.history[:end_step], last_idx_transient
 
 
 class GameOfLife(Totalistic2D):
