@@ -41,4 +41,10 @@ def test_dl_simulate():
 
 def test_gl_simulate_transients():
     hist, trans = dl.simulate_transients(dl_series[0], 10)
-    assert trans == 5
+
+    all_match = True
+    for hi, grid in enumerate(hist):
+        if not np.array_equal(dl_series[hi], grid):
+            all_match = False
+        
+    assert trans == 1 and all_match

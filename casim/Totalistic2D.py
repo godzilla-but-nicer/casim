@@ -74,6 +74,7 @@ class Totalistic2D:
 
         # if we dont find the attractor the transient index should be NaN
         if not found_attractor:
+            end_step = max_steps
             last_idx_transient = np.nan
 
         return self.history[:end_step], last_idx_transient
@@ -146,7 +147,9 @@ class DormantLife(Totalistic2D):
         """
         # copy the grid to make a new grid
         new_grid = grid.copy()
-        updated = np.zeros(new_grid.shape, dtype=bool)  # mask for dead spores
+
+        # this mask ensures thats the checks on dormant cells occur correctly
+        updated = np.zeros(new_grid.shape, dtype=bool)
 
         # need 2 arrays to convolve
         dormant = grid == 1
@@ -167,15 +170,13 @@ class DormantLife(Totalistic2D):
         new_grid[(grid == 0) & (a_neighbors == self.reproduce)] = 2
 
         # dormant dying
-        new_grid[(updated is False) &
-                 (grid == 1) &
+        new_grid[(grid == 1) &
                  (d_neighbors + a_neighbors > self.die)] = 0
-        updated[(updated is False) &
-                (grid == 1) &
+        updated[(grid == 1) &
                 (d_neighbors + a_neighbors > self.die)] = True
 
         # dormant awakening
-        new_grid[(updated is False) &
+        new_grid[(updated == False) &  # flake8 whines but numpy-friendly
                  (grid == 1) &
                  ((d_neighbors >= self.survive['low']) &
                   (d_neighbors <= self.survive['high']))] = 2
