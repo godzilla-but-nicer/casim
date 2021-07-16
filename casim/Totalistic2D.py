@@ -46,6 +46,33 @@ class Totalistic2D:
         """
         this method simulates the thing until an attractor is found
         """
+        all_history = self.simulate(init_grid, max_steps)
+
+        # find the attractor by looking backwards
+        found_attractor = False
+        for z, past_state in enumerate(all_history[::-1]):
+            if np.array_equal(past_state, all_history[-1]) and z > 0:
+                idx = all_history.shape[0] - z
+                found_attractor = True
+                break
+        
+        # the way this in indexed should get JUST one of each state in the
+        # attractor. It at least works with period 1 attractors. Might not
+        # on longer attractors??
+        # iterate from the beginning to see where attractor first appears
+        if not found_attractor:
+            return all_history, np.nan
+        else:
+            attractor = all_history[idx:]
+            for i, past_state in enumerate(all_history):
+                for attr_state in attractor:
+                    if np.array_equal(past_state, attr_state):
+                        return (all_history[:i], i-1)
+
+    def simulate_transients_old(self, init_grid, max_steps):
+        """
+        this method simulates the thing until an attractor is found
+        """
         if type(init_grid) == int:
             self.grid = self.rng.choice([0, 1], size=[init_grid, init_grid])
         else:
