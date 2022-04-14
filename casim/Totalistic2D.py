@@ -25,7 +25,6 @@ class Totalistic2D:
         if type(noise) == float:
             self.noise = np.repeat(noise, self.states.shape[0])
         else:
-            assert(len(noise) == self.states.shape[0])
             self.noise = np.array(noise)
 
         # if not given the transition matrix is uniform
@@ -132,7 +131,6 @@ class GameOfLife(Totalistic2D):
         if type(noise) == float:
             self.noise = np.repeat(noise, self.states.shape[0])
         else:
-            assert(len(noise) == self.states.shape[0])
             self.noise = np.array(noise)
 
         # if not given the transition matrix is uniform
@@ -195,7 +193,6 @@ class DormantLife(Totalistic2D):
         if type(noise) == float:
             self.noise = np.repeat(noise, self.states.shape[0])
         elif type(noise) == Iterable:
-            assert len(noise) == self.states.shape[0]
             self.noise = np.array(noise)
 
         # if not given the transition matrix is uniform
