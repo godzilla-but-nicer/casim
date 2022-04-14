@@ -11,7 +11,7 @@ class Totalistic2D:
                  seed: int = None):
         """
         This class contains functions for 2D CA models that depend on the
-        number of neighbors but not their specific arrangement 
+        number of neighbors but not their specific arrangement
         """
 
         # set the possible states and thresholds for the states
@@ -91,7 +91,7 @@ class Totalistic2D:
     def _resolve_noise(self, grid: npt.ArrayLike) -> Tuple[npt.ArrayLike,
                                                            npt.ArrayLike]:
         """
-        this function contains all of the code 
+        this function contains all of the code
         """
         filter = np.zeros(grid.shape).astype(bool)
         new_states = np.zeros(grid.shape)
@@ -155,7 +155,8 @@ class GameOfLife(Totalistic2D):
         new_grid = grid.copy()
 
         # _ is a boolean mask of which cells flipped
-        _, new_grid = self._resolve_noise(new_grid)
+        noisy, noise_grid = self._resolve_noise(new_grid)
+        new_grid[noisy] = noise_grid[noisy]
 
         # survival
         new_grid[(grid == 1) &
@@ -230,7 +231,8 @@ class DormantLife(Totalistic2D):
 
         # i spent a lot of time ensuring we dont process the noisy grid
         # but actually I think its fine?
-        _, new_grid = self._resolve_noise(new_grid)
+        noisy, noise_grid = self._resolve_noise(new_grid)
+        new_grid[noisy] = noise_grid[noisy]
 
         # sporulation
         new_grid[(grid == 2) &
