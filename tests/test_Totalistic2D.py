@@ -4,10 +4,11 @@ import casim.Totalistic2D
 from .Totalistic2D_knowns import gol_glider, gol_glider_next, gol_series
 from .Totalistic2D_knowns import dl_glider, dl_glider_next, dl_series
 
-gol = casim.Totalistic2D.GameOfLife(123)
-dl = casim.Totalistic2D.DormantLife(123)
+gol = casim.Totalistic2D.GameOfLife(seed=123)
+dl = casim.Totalistic2D.DormantLife(seed=123)
 
 
+# game of life tests
 def test_gol_init():
     assert gol.reproduce == 3
 
@@ -26,6 +27,16 @@ def test_gol_simulate_transients():
     assert trans == 4
 
 
+def test_gol_noise():
+    gol = casim.Totalistic2D.GameOfLife(noise=1.0,
+                                        transitions=np.array([[0.0, 1.0],
+                                                              [1.0, 0.0]]),
+                                        seed=123)
+    filter, states = gol._resolve_noise(gol_glider)
+    assert np.sum(states > 0) == 20
+
+
+# dormant life tests
 def test_dl_init():
     assert dl.reproduce == 3
 
@@ -46,5 +57,15 @@ def test_gl_simulate_transients():
     for hi, grid in enumerate(hist):
         if not np.array_equal(dl_series[hi], grid):
             all_match = False
-        
+
     assert trans == 1 and all_match
+
+
+def test_dl_noise():
+    dl = casim.Totalistic2D.DormantLife(noise=1.0,
+                                        transitions=np.array([[0., 1.0, 0.0],
+                                                              [1., 0.0, 0.0],
+                                                              [1., 0.0, 0.0]]),
+                                        seed=123)
+    filter, states = dl._resolve_noise(dl_glider)
+    assert np.sum(states > 0) == 20

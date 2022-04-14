@@ -1,13 +1,18 @@
 import numpy as np
-from numpy.core.numeric import array_equal
+import numpy.typing as npt
+from typing import Iterable, Tuple, Union
 from scipy import signal
 
 
 class Totalistic2D:
-    def __init__(self, n_states: int, thresholds, seed: int = None):
+    def __init__(self, n_states: int, thresholds: Iterable[int],
+                 noise: Union[float, Iterable[float]] = 0.0,
+                 transitions: Union[Iterable[Iterable[float]], bool] = False,
+                 seed: int = None):
         """
         This class contains functions for 2D CA models that depend on the
-        number of neighbors but not their specific arrangement """
+        number of neighbors but not their specific arrangement 
+        """
 
         # set the possible states and thresholds for the states
         self.thresholds = np.zeros(n_states)
@@ -15,6 +20,20 @@ class Totalistic2D:
 
         for i in range(self.states.shape[0]):
             self.thresholds[i] = thresholds[i]
+
+        # we want the noise stuff to be in array form for downstream logic
+        if type(noise) == float:
+            self.noise = np.repeat(noise, self.states.shape[0])
+        else:
+            assert(len(noise) == self.states.shape[0])
+            self.noise = np.array(noise)
+
+        # if not given the transition matrix is uniform
+        if not transitions:
+            self.transitions = np.repeat(np.repeat(1 / n_states, n_states),
+                                         n_states)
+        else:
+            self.transitions = transitions
 
         # rng
         if seed:
@@ -55,7 +74,7 @@ class Totalistic2D:
                 idx = all_history.shape[0] - z
                 found_attractor = True
                 break
-        
+
         # the way this in indexed should get JUST one of each state in the
         # attractor. It at least works with period 1 attractors. Might not
         # on longer attractors??
@@ -69,50 +88,38 @@ class Totalistic2D:
                     if np.array_equal(past_state, attr_state):
                         return (all_history[:i], i-1)
 
-    def simulate_transients_old(self, init_grid, max_steps):
+    def _resolve_noise(self, grid: npt.ArrayLike) -> Tuple[npt.ArrayLike,
+                                                           npt.ArrayLike]:
         """
-        this method simulates the thing until an attractor is found
+        this function contains all of the code 
         """
-        if type(init_grid) == int:
-            self.grid = self.rng.choice([0, 1], size=[init_grid, init_grid])
-        else:
-            self.grid = init_grid
+        filter = np.zeros(grid.shape).astype(bool)
+        new_states = np.zeros(grid.shape)
+        for st, eta in enumerate(self.noise):
+            st_filter = (grid == st) & \
+                        (self.rng.uniform(size=grid.shape) < eta)
+            # we want to return a filter so we don't undo the noise changes
+            filter = filter | st_filter
 
-        # flag to set NaN if attractor is not found
-        found_attractor = False
+            # we also need to do the changes per state
+            new_states[st_filter] = self.rng.choice(
+                self.states,
+                size=grid.shape,
+                p=self.transitions[st])[st_filter]
 
-        self.history = np.zeros(
-            (max_steps+1, self.grid.shape[0], self.grid.shape[0]))
-
-        for st in range(max_steps):
-            self.history[st] = self.grid
-            self.grid = self.step(self.grid)
-
-            for hi, prev in enumerate(self.history[:st]):
-                if array_equal(prev, self.grid):
-                    last_idx_transient = hi - 1
-                    found_attractor = True
-                    break
-            
-            # exit loop if we're done with the attractor
-            if found_attractor:
-                end_step = st + 1
-                break
-
-        # if we dont find the attractor the transient index should be NaN
-        if not found_attractor:
-            end_step = max_steps
-            last_idx_transient = np.nan
-
-        return self.history[:end_step], last_idx_transient
+        return (filter, new_states)
 
 
 class GameOfLife(Totalistic2D):
-    def __init__(self, seed: int = None):
+    def __init__(self,
+                 noise: Union[float, Iterable[float]] = 0.0,
+                 transitions: Union[Iterable[Iterable[float]], bool] = False,
+                 seed: int = None):
         """
         this class simulates conway's game of life
         """
         # set params
+        self.states = np.array([0, 1])
         self.survive = {'low': 2, 'high': 3}
         self.reproduce = 3
 
@@ -120,6 +127,19 @@ class GameOfLife(Totalistic2D):
         self.filter = np.array([[1, 1, 1],
                                 [1, 0, 1],
                                 [1, 1, 1]])
+
+        # we want the noise stuff to be in array form for downstream logic
+        if type(noise) == float:
+            self.noise = np.repeat(noise, self.states.shape[0])
+        else:
+            assert(len(noise) == self.states.shape[0])
+            self.noise = np.array(noise)
+
+        # if not given the transition matrix is uniform
+        if type(transitions) == bool:
+            self.transitions = np.repeat(1/2, 4).reshape((2, 2))
+        else:
+            self.transitions = transitions
 
         if seed:
             self.rng = np.random.default_rng(seed)
@@ -134,6 +154,8 @@ class GameOfLife(Totalistic2D):
                                       mode='same', boundary='wrap')
         new_grid = grid.copy()
 
+        # noise
+
         # survival
         new_grid[(grid == 1) &
                  ((neighbors < self.survive['low']) |
@@ -146,12 +168,16 @@ class GameOfLife(Totalistic2D):
 
 
 class DormantLife(Totalistic2D):
-    def __init__(self, seed: int):
+    def __init__(self,
+                 noise: Union[float, Iterable[float]] = 0.0,
+                 transitions: Union[npt.ArrayLike, bool] = False,
+                 seed: int = None):
         """
         this class implements the three state game of life described in
         Javid 2007
         """
         # set params
+        self.states = np.array([0, 1, 2])
         self.survive = {'low': 2, 'high': 3}
         self.reproduce = 3
         self.die = 4
@@ -162,6 +188,19 @@ class DormantLife(Totalistic2D):
         self.filter = np.array([[1, 1, 1],
                                 [1, 0, 1],
                                 [1, 1, 1]])
+
+        # we want the noise stuff to be in array form for downstream logic
+        if type(noise) == float:
+            self.noise = np.repeat(noise, self.states.shape[0])
+        elif type(noise) == Iterable:
+            assert len(noise) == self.states.shape[0]
+            self.noise = np.array(noise)
+
+        # if not given the transition matrix is uniform
+        if type(transitions) == bool:
+            self.transitions = np.repeat(1/3, 9).reshape((3, 3))
+        else:
+            self.transitions = transitions
 
         if seed:
             self.rng = np.random.default_rng(seed)
