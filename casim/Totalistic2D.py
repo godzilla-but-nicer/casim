@@ -128,10 +128,12 @@ class GameOfLife(Totalistic2D):
                                 [1, 1, 1]])
 
         # we want the noise stuff to be in array form for downstream logic
-        if type(noise) == float:
+        if type(noise) == float or type(noise) == np.float64:
             self.noise = np.repeat(noise, self.states.shape[0])
         elif type(noise) == Iterable:
             self.noise = np.array(noise)
+        else:
+            raise(TypeError, "noise is a bad type")
 
         # if not given the transition matrix is uniform
         if type(transitions) == bool:
@@ -190,10 +192,12 @@ class DormantLife(Totalistic2D):
                                 [1, 1, 1]])
 
         # we want the noise stuff to be in array form for downstream logic
-        if type(noise) == float:
+        if type(noise) == float or type(noise) == np.float64:
             self.noise = np.repeat(noise, self.states.shape[0])
         elif type(noise) == Iterable:
             self.noise = np.array(noise)
+        else:
+            raise(TypeError, "noise is a bad type")
 
         # if not given the transition matrix is uniform
         if type(transitions) == bool:
