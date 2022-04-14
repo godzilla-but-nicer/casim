@@ -130,7 +130,7 @@ class GameOfLife(Totalistic2D):
         # we want the noise stuff to be in array form for downstream logic
         if type(noise) == float:
             self.noise = np.repeat(noise, self.states.shape[0])
-        else:
+        elif type(noise) == Iterable:
             self.noise = np.array(noise)
 
         # if not given the transition matrix is uniform
