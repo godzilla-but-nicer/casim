@@ -154,7 +154,8 @@ class GameOfLife(Totalistic2D):
                                       mode='same', boundary='wrap')
         new_grid = grid.copy()
 
-        # noise
+        # _ is a boolean mask of which cells flipped
+        _, new_grid = self._resolve_noise(new_grid)
 
         # survival
         new_grid[(grid == 1) &
@@ -227,6 +228,10 @@ class DormantLife(Totalistic2D):
         a_neighbors = signal.convolve2d(
             alive, self.filter, mode='same', boundary='wrap')
 
+        # i spent a lot of time ensuring we dont process the noisy grid
+        # but actually I think its fine?
+        _, new_grid = self._resolve_noise(new_grid)
+
         # sporulation
         new_grid[(grid == 2) &
                  ((a_neighbors < self.survive['low']) |
@@ -242,7 +247,7 @@ class DormantLife(Totalistic2D):
                 (d_neighbors + a_neighbors > self.die)] = True
 
         # dormant awakening
-        new_grid[(updated == False) &  # flake8 whines but numpy-friendly
+        new_grid[(np.equal(updated, False)) &  # flake8 friendly
                  (grid == 1) &
                  ((d_neighbors >= self.survive['low']) &
                   (d_neighbors <= self.survive['high']))] = 2
