@@ -2,14 +2,14 @@ from setuptools import setup
 
 setup(
     name='casim',
-    version='0.4.7',
+    version='0.5.0',
     description='Simple package for simulating cellular automata',
     url='https://github.com/godzilla-but-nicer/cellularautomata',
     author='Pat Wall',
     author_email='patgwall@iu.edu',
     license='MIT',
     packages=['casim'],
-    install_requires=['numpy>=1.11',
+    install_requires=['numpy>=1.20',
                       'networkx>=2.0',
                       'scipy>=1.2', ],
 
