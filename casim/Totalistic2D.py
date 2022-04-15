@@ -5,7 +5,7 @@ from scipy import signal
 
 
 class Totalistic2D:
-    def __init__(self, n_states: int, thresholds: Iterable[int],
+    def __init__(self, n_states: int, thresholds: Iterable[Iterable[set]],
                  noise: Union[float, Iterable[float]] = 0.0,
                  transitions: Union[Iterable[Iterable[float]], bool] = False,
                  seed: int = None):
@@ -17,12 +17,18 @@ class Totalistic2D:
         # set the possible states and thresholds for the states
         self.thresholds = np.zeros(n_states)
         self.states = np.arange(n_states)
+        self.filter = np.array([[1, 1, 1],
+                                [1, 0, 1],
+                                [1, 1, 1]])
 
+        # thresholds is the set of integers for which state i
+        # transitions to state j
         for i in range(self.states.shape[0]):
-            self.thresholds[i] = thresholds[i]
+            for j in range(self.states.shape[0]):
+                self.thresholds[i, j] = thresholds[i, j]
 
         # we want the noise stuff to be in array form for downstream logic
-        if type(noise) == float:
+        if type(noise) == float or type(noise) == np.float64:
             self.noise = np.repeat(noise, self.states.shape[0])
         else:
             self.noise = np.array(noise)
@@ -87,10 +93,27 @@ class Totalistic2D:
                     if np.array_equal(past_state, attr_state):
                         return (all_history[:i], i-1)
 
+    def step(self, grid: npt.ArrayLike) -> npt.ArrayLike:
+        """
+        generic step function
+        """
+        neighbors = signal.convolve2d(grid, self.filter,
+                                      mode='same', boundary='wrap')
+        new_grid = grid.copy()
+
+        noisy, noise_grid = self._resolve_noise(new_grid)
+        grid[noisy] = noise_grid[noisy]
+
+        for i in range(self.states.shape[0]):
+            for j in range(self.states.shape[0]):
+                new_grid[(grid == i) &
+                         (neighbors in self.transitions[i, j])] = j
+
     def _resolve_noise(self, grid: npt.ArrayLike) -> Tuple[npt.ArrayLike,
                                                            npt.ArrayLike]:
         """
-        this function contains all of the code
+        this function contains all of the code to update the grid for the sites
+        that are deemed noisy
         """
         filter = np.zeros(grid.shape).astype(bool)
         new_states = np.zeros(grid.shape)
@@ -156,7 +179,7 @@ class GameOfLife(Totalistic2D):
 
         # _ is a boolean mask of which cells flipped
         noisy, noise_grid = self._resolve_noise(new_grid)
-        new_grid[noisy] = noise_grid[noisy]
+        grid[noisy] = noise_grid[noisy]
 
         # survival
         new_grid[(grid == 1) &
@@ -233,7 +256,7 @@ class DormantLife(Totalistic2D):
         # i spent a lot of time ensuring we dont process the noisy grid
         # but actually I think its fine?
         noisy, noise_grid = self._resolve_noise(new_grid)
-        new_grid[noisy] = noise_grid[noisy]
+        grid[noisy] = noise_grid[noisy]
 
         # sporulation
         new_grid[(grid == 2) &
