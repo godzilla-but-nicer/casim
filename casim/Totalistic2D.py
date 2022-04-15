@@ -107,7 +107,7 @@ class Totalistic2D:
         for i in range(self.states.shape[0]):
             for j in range(self.states.shape[0]):
                 new_grid[(grid == i) &
-                         (neighbors in self.transitions[i, j])] = j
+                         (neighbors in self.thresholds[i, j])] = j
 
     def _resolve_noise(self, grid: npt.ArrayLike) -> Tuple[npt.ArrayLike,
                                                            npt.ArrayLike]:
