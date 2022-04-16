@@ -23,9 +23,7 @@ class Totalistic2D:
 
         # thresholds is the set of integers for which state i
         # transitions to state j
-        for i in range(self.states.shape[0]):
-            for j in range(self.states.shape[0]):
-                self.thresholds[i, j] = thresholds[i, j]
+        self.thresholds = thresholds
 
         # we want the noise stuff to be in array form for downstream logic
         if type(noise) == float or type(noise) == np.float64:
@@ -107,7 +105,9 @@ class Totalistic2D:
         for i in range(self.states.shape[0]):
             for j in range(self.states.shape[0]):
                 new_grid[(grid == i) &
-                         (neighbors in self.thresholds[i, j])] = j
+                         (neighbors in self.thresholds[i][j])] = j
+        
+        return new_grid
 
     def _resolve_noise(self, grid: npt.ArrayLike) -> Tuple[npt.ArrayLike,
                                                            npt.ArrayLike]:
