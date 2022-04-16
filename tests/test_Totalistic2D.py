@@ -10,10 +10,11 @@ dl = casim.Totalistic2D.DormantLife(seed=123)
 
 # test generic step
 def test_gen_step():
-    thresh_sets = [[set([0, 1, 2, 4, 5, 6, 7, 8]), set([3])],
-                   [set((0, 1, 4, 5, 6, 7, 8)),    set((2, 3))]]
+    thresh_sets = [[[0, 1, 2, 4, 5, 6, 7, 8], [3]],
+                   [(0, 1, 4, 5, 6, 7, 8),    (2, 3)]]
     t1 = casim.Totalistic2D.Totalistic2D(2, thresholds=thresh_sets)
-    assert np.array_equal(t1.step(gol_glider), gol_glider_next)
+    next_step = t1.step(gol_glider)
+    assert np.array_equal(next_step, gol_glider_next)
 
 
 # game of life tests

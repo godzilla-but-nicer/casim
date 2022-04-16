@@ -5,7 +5,7 @@ from scipy import signal
 
 
 class Totalistic2D:
-    def __init__(self, n_states: int, thresholds: Iterable[Iterable[set]],
+    def __init__(self, n_states: int, thresholds: Iterable[Iterable[Iterable]],
                  noise: Union[float, Iterable[float]] = 0.0,
                  transitions: Union[Iterable[Iterable[float]], bool] = False,
                  seed: int = None):
@@ -25,24 +25,7 @@ class Totalistic2D:
         # transitions to state j
         self.thresholds = thresholds
 
-        # we want the noise stuff to be in array form for downstream logic
-        if type(noise) == float or type(noise) == np.float64:
-            self.noise = np.repeat(noise, self.states.shape[0])
-        else:
-            self.noise = np.array(noise)
-
-        # if not given the transition matrix is uniform
-        if not transitions:
-            self.transitions = np.repeat(np.repeat(1 / n_states, n_states),
-                                         n_states)
-        else:
-            self.transitions = transitions
-
-        # rng
-        if seed:
-            self.rng = np.random.default_rng(seed)
-        else:
-            self.rng = np.random.default_rng()
+        self._init_stochasticity(n_states, noise, transitions, seed)
 
     def simulate(self, init_grid, steps: int):
         """
@@ -104,9 +87,9 @@ class Totalistic2D:
 
         for i in range(self.states.shape[0]):
             for j in range(self.states.shape[0]):
-                new_grid[(grid == i) &
-                         (neighbors in self.thresholds[i][j])] = j
-        
+                for k in self.thresholds[i][j]:
+                    new_grid[(grid == i) & (neighbors == k)] = j
+
         return new_grid
 
     def _resolve_noise(self, grid: npt.ArrayLike) -> Tuple[npt.ArrayLike,
@@ -131,6 +114,28 @@ class Totalistic2D:
 
         return (filter, new_states)
 
+    def _init_stochasticity(self, n_states, noise, transitions, seed):
+        # noise thresholds
+        if type(noise) == float or type(noise) == np.float64:
+            self.noise = np.repeat(noise, self.states.shape[0])
+        elif type(noise) == Iterable:
+            self.noise = np.array(noise)
+        else:
+            raise(TypeError, "noise is a bad type")
+
+        # if not given the transition matrix is uniform
+        if not transitions:
+            self.transitions = (np.repeat(1/n_states, n_states**2)
+                                .reshape((n_states, n_states)))
+        else:
+            self.transitions = transitions
+
+        # rng object
+        if seed:
+            self.rng = np.random.default_rng(seed)
+        else:
+            self.rng = np.random.default_rng()
+
 
 class GameOfLife(Totalistic2D):
     def __init__(self,
@@ -150,24 +155,8 @@ class GameOfLife(Totalistic2D):
                                 [1, 0, 1],
                                 [1, 1, 1]])
 
-        # we want the noise stuff to be in array form for downstream logic
-        if type(noise) == float or type(noise) == np.float64:
-            self.noise = np.repeat(noise, self.states.shape[0])
-        elif type(noise) == Iterable:
-            self.noise = np.array(noise)
-        else:
-            raise(TypeError, "noise is a bad type")
-
-        # if not given the transition matrix is uniform
-        if type(transitions) == bool:
-            self.transitions = np.repeat(1/2, 4).reshape((2, 2))
-        else:
-            self.transitions = transitions
-
-        if seed:
-            self.rng = np.random.default_rng(seed)
-        else:
-            self.rng = np.random.default_rng()
+        self._init_stochasticity(self.states.shape[0], noise, transitions,
+                                 seed)
 
     def step(self, grid):
         """
@@ -214,24 +203,8 @@ class DormantLife(Totalistic2D):
                                 [1, 0, 1],
                                 [1, 1, 1]])
 
-        # we want the noise stuff to be in array form for downstream logic
-        if type(noise) == float or type(noise) == np.float64:
-            self.noise = np.repeat(noise, self.states.shape[0])
-        elif type(noise) == Iterable:
-            self.noise = np.array(noise)
-        else:
-            raise(TypeError, "noise is a bad type")
-
-        # if not given the transition matrix is uniform
-        if type(transitions) == bool:
-            self.transitions = np.repeat(1/3, 9).reshape((3, 3))
-        else:
-            self.transitions = transitions
-
-        if seed:
-            self.rng = np.random.default_rng(seed)
-        else:
-            self.rng = np.random.default_rng()
+        self._init_stochasticity(self.states.shape[0], noise,
+                                 transitions, seed)
 
     def step(self, grid):
         """
