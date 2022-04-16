@@ -124,7 +124,7 @@ class Totalistic2D:
             raise(TypeError, "noise is a bad type")
 
         # if not given the transition matrix is uniform
-        if not transitions:
+        if type(transitions) == bool:
             self.transitions = (np.repeat(1/n_states, n_states**2)
                                 .reshape((n_states, n_states)))
         else:
