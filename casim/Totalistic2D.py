@@ -78,7 +78,10 @@ class Totalistic2D:
         """
         generic step function
         """
-        neighbors = signal.convolve2d(grid, self.filter,
+        # right new we only consider the "highest" state as neighbors
+        # this is probably sufficient for my purposes but I'll add logic
+        # for "neighbors" in each state
+        neighbors = signal.convolve2d((grid == self.states[-1]), self.filter,
                                       mode='same', boundary='wrap')
         new_grid = grid.copy()
 
